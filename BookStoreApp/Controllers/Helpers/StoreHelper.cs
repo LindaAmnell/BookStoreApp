@@ -109,7 +109,62 @@ namespace BookStoreApp.Controllers.Helpers
             Console.ReadKey();
         }
 
+        public async Task RemoveBookFromStore()
+        {
+            Console.Clear();
+            Console.WriteLine("=== REMOVE BOOK FROM STORE === ");
 
+            var stores = await _dbServce.GetAll<Store>();
+
+            if (stores.Count == 0)
+            {
+                Console.WriteLine("No stores found");
+                Console.ReadLine();
+                return;
+            }
+
+            Console.WriteLine("Choose a store:\n");
+            int? storeId = InputHelper.SelectFromList(stores, s => $"{s.StoreName} ({s.City})",
+            s => s.StoreId);
+
+
+            if (storeId == null)
+            {
+                Console.WriteLine("Cancelled");
+                Console.ReadLine();
+                return;
+            }
+
+            var stock = await _ssService.StoreStock(storeId.Value);
+
+            if (stock.Count == 0)
+            {
+                Console.WriteLine("Store has no books");
+                Console.ReadLine();
+                return;
+            }
+
+            Console.WriteLine("\nChoose a book to remove:\n");
+
+            int? index = InputHelper.SelectFromList(stock, s => $"{s.BookTitle} (Qty: {s.Quantity})", s => stock.IndexOf(s));
+
+            if (index == null)
+            {
+                Console.WriteLine("Cancelled");
+                Console.ReadLine();
+                return;
+            }
+
+            var selected = stock[index.Value];
+
+            bool success = await _ssService.RemoveBook(storeId.Value, selected.ISBN);
+
+            Console.WriteLine(success ? "\nBook remved from store!" : "\nFailed to remove book.");
+
+            Console.ReadLine();
+
+
+        }
 
     }
 

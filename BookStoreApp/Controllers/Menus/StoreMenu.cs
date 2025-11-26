@@ -34,10 +34,10 @@ namespace BookStoreApp.Controllers.Menus
                         await _storeHelper.ListStoreStock();
                         break;
                     case "2":
-                        //await _storeHelper.AddBookToStore();
+                        await _storeHelper.AddBookToStore();
                         break;
                     case "3":
-                        //await _storeHelper.RemoveBookFromStore();
+                        await _storeHelper.RemoveBookFromStore();
                         break;
                     case "0":
                         running = false;

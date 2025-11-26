@@ -75,7 +75,6 @@ namespace BookStoreApp.Service
                 return false;
             }
 
-
             try
             {
                 await _dbService.Delete(findAuthor);
