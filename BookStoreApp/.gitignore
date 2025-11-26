@@ -1,0 +1,26 @@
+# Ignore user secrets
+appsettings.Development.json
+
+# Build artifacts
+bin/
+obj/
+
+# Visual Studio
+.vs/
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+
+# User-specific files
+*.user
+*.suo
+*.cache
+*.config
+
+# Other
+*.db
+*.mdf
+*.ldf
