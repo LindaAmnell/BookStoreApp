@@ -5,172 +5,18 @@ namespace BookStoreApp.Controllers.Helpers
 {
     public class BookHelper
     {
-        private readonly BookService _bookService;
         private readonly AuthorService _authorService;
         private readonly DbService _dbService;
 
-        public BookHelper(BookService bookService, AuthorService authorService, DbService dbService)
+        public BookHelper(AuthorService authorService, DbService dbService)
         {
             _dbService = dbService;
-            _bookService = bookService;
             _authorService = authorService;
         }
 
-        public async Task ListBooks()
-        {
-            Console.Clear();
-            Console.WriteLine("=== BOOK LIST ===\n");
-
-            var books = await _bookService.GetAllBooks();
-
-            if (books == null || books.Count == 0)
-            {
-                Console.WriteLine("No books found.");
-                Console.WriteLine("\nPress Enter to return...");
-                Console.ReadLine();
-                return;
-            }
-            var sortedBooks = books.OrderBy(b => b.Title).ToList();
-
-            foreach (var b in sortedBooks)
-            {
-                Console.WriteLine($"• {b.Title}");
-            }
-
-            Console.WriteLine("\nPress Enter to return...");
-            Console.ReadLine();
-        }
-
-
-        public async Task CreateBook()
-        {
-            Console.Clear();
-            Console.WriteLine("=== CREATE NEW BOOK ===\n");
-
-            var input = await CollectBookInput();
-
-            if (input == null)
-            {
-                Console.WriteLine("\nCreation cancelled. Returning...");
-                Console.ReadLine();
-                return;
-            }
-
-            var data = input.Value;
-
-            var newBook = new Book
-            {
-                Isbn13 = data.isbn,
-                Title = data.title,
-                Price = data.price,
-                ReleaseDate = data.releaseDate,
-                AuthorId = data.authorId,
-                GenreId = data.genreId,
-                FormatId = data.formatId,
-                PublisherId = data.publisherId,
-                LanguagesId = data.languageId
-            };
-
-            bool success = await _bookService.CreateBook(newBook);
-
-            Console.WriteLine(success ? "\nBook was successfully created!" : "\nFailed to create book.");
-            Console.WriteLine("Press Enter to return...");
-            Console.ReadLine();
-        }
-
-
-
-        public async Task UpdateBook()
-        {
-            var books = await _bookService.GetAllBooks();
-            if (books.Count == 0)
-            {
-                Console.WriteLine("No books found.");
-                Console.ReadLine();
-                return;
-            }
-
-            Console.Clear();
-            Console.WriteLine("Select a book to update:\n");
-
-            int? index = InputHelper.SelectFromList(books, b => b.Title, b => books.IndexOf(b));
-
-            if (index == null)
-            {
-                Console.WriteLine("\nUpdate cancelled.");
-                Console.ReadLine();
-                return;
-            }
-
-            var selectedBook = books[index.Value];
-
-            await EditBookFields(selectedBook);
-
-            bool success = await _bookService.UpdateBook(selectedBook);
-
-            Console.WriteLine(success
-                ? "\nBook updated!"
-                : "\nBook update failed.");
-
-            Console.ReadLine();
-        }
-
-
-        public async Task DeleteBook()
-        {
-            Console.Clear();
-            Console.WriteLine("=== DELETE BOOK ===\n");
-
-            var books = await _bookService.GetAllBooks();
-
-            if (books.Count == 0)
-            {
-                Console.WriteLine("No books found.");
-                Console.ReadLine();
-                return;
-            }
-
-            Console.WriteLine("Select a book to delete:\n");
-
-            int? index = InputHelper.SelectFromList(
-                books,
-                b => b.Title,
-                b => books.IndexOf(b)
-            );
-
-            if (index == null)
-            {
-                Console.WriteLine("\nDeletion cancelled.");
-                Console.ReadLine();
-                return;
-            }
-
-            var selectedBook = books[index.Value];
-
-            Console.Write($"\nAre you sure you want to delete \"{selectedBook.Title}\"? (y/n): ");
-            string confirm = Console.ReadLine()!.ToLower();
-
-            if (confirm != "y")
-            {
-                Console.WriteLine("\nDeletion cancelled.");
-                Console.ReadLine();
-                return;
-            }
-
-            bool success = await _bookService.DeleteBook(selectedBook.Isbn13);
-
-            Console.WriteLine(success
-                ? "\nBook deleted successfully!"
-                : "\nFailed to delete book.");
-
-            Console.WriteLine("Press Enter to return...");
-            Console.ReadLine();
-        }
-
-
-
         private (string isbn, string title, decimal price, DateOnly releaseDate)? CollectBasicBookData()
         {
+            // ISBN
             Console.Write("Enter ISBN-13 (or 0 to cancel): ");
             string? isbn = Console.ReadLine();
 
@@ -185,6 +31,8 @@ namespace BookStoreApp.Controllers.Helpers
                 Console.Write("ISBN cannot be empty. Enter ISBN-13: ");
                 isbn = Console.ReadLine();
             }
+
+            // Title
             Console.Write("Enter book title (or 0 to cancel): ");
             string? title = Console.ReadLine();
 
@@ -199,6 +47,8 @@ namespace BookStoreApp.Controllers.Helpers
                 Console.Write("Title cannot be empty. Enter book title: ");
                 title = Console.ReadLine();
             }
+
+            // Price
             Console.Write("Enter price (or 0 to cancel): ");
             string? priceInput = Console.ReadLine();
 
@@ -214,6 +64,7 @@ namespace BookStoreApp.Controllers.Helpers
                 if (priceInput == "0")
                     return null;
             }
+            // Release date
             Console.Write("Enter release date YYYY-MM-DD (or 0 to cancel): ");
             string? dateInput = Console.ReadLine();
 
@@ -234,53 +85,75 @@ namespace BookStoreApp.Controllers.Helpers
         }
 
 
-        private async Task<(int authorId, int genreId, int formatId, int publisherId, int languageId)?> CollectBookSelections()
+        private async Task<(int authorId, int genreId, int formatId, int publisherId, int languageId)?>
+           CollectBookSelections((string isbn, string title, decimal price, DateOnly releaseDate) basic)
         {
+            string? authorName = null;
+            string? genreName = null;
+            string? formatName = null;
+            string? publisherName = null;
+            string? languageName = null;
+
+            SelectedInfo(basic, authorName, genreName, formatName, publisherName, languageName);
+
             // AUTHOR
             Console.WriteLine("\nSelect an author:");
             var authors = await _authorService.GetAllAuthor();
             int? authorId = InputHelper.SelectFromList(authors, a => $"{a.FirstName} {a.LastName}", a => a.AuthorId);
-
             if (authorId == null) return null;
+
+            authorName = authors.First(a => a.AuthorId == authorId).FirstName
+                 + " " + authors.First(a => a.AuthorId == authorId).LastName;
+            SelectedInfo(basic, authorName, genreName, formatName, publisherName, languageName);
 
             // GENRE
             Console.WriteLine("\nSelect a genre:");
             var genres = await _dbService.GetAll<Genre>();
             int? genreId = InputHelper.SelectFromList(genres, g => g.GenreName, g => g.GenreId);
-
             if (genreId == null) return null;
+
+            genreName = genres.First(g => g.GenreId == genreId).GenreName;
+            SelectedInfo(basic, authorName, genreName, formatName, publisherName, languageName);
 
             // FORMAT
             Console.WriteLine("\nSelect a format:");
             var formats = await _dbService.GetAll<Format>();
             int? formatId = InputHelper.SelectFromList(formats, f => f.FormatType, f => f.FormatId);
-
             if (formatId == null) return null;
+
+            formatName = formats.First(f => f.FormatId == formatId).FormatType;
+            SelectedInfo(basic, authorName, genreName, formatName, publisherName, languageName);
 
             // PUBLISHER
             Console.WriteLine("\nSelect a publisher:");
             var publishers = await _dbService.GetAll<Publisher>();
             int? publisherId = InputHelper.SelectFromList(publishers, p => p.Name, p => p.PublisherId);
-
             if (publisherId == null) return null;
+
+            publisherName = publishers.First(p => p.PublisherId == publisherId).Name;
+            SelectedInfo(basic, authorName, genreName, formatName, publisherName, languageName);
 
             // LANGUAGE
             Console.WriteLine("\nSelect a language:");
             var languages = await _dbService.GetAll<Language>();
             int? languageId = InputHelper.SelectFromList(languages, l => l.LanguageName, l => l.LanguageId);
-
             if (languageId == null) return null;
+
+            languageName = languages.First(l => l.LanguageId == languageId).LanguageName;
+            SelectedInfo(basic, authorName, genreName, formatName, publisherName, languageName);
 
             return (authorId.Value, genreId.Value, formatId.Value, publisherId.Value, languageId.Value);
         }
 
-        private async Task<(string isbn, string title, decimal price, DateOnly releaseDate, int authorId, int genreId, int formatId, int publisherId, int languageId)?> CollectBookInput()
+        public async Task<(string isbn, string title, decimal price, DateOnly releaseDate,
+               int authorId, int genreId, int formatId, int publisherId, int languageId)?>
+             CollectBookInput()
         {
             var basic = CollectBasicBookData();
             if (basic == null)
                 return null;
 
-            var selections = await CollectBookSelections();
+            var selections = await CollectBookSelections(basic.Value);
             if (selections == null)
                 return null;
 
@@ -297,7 +170,7 @@ namespace BookStoreApp.Controllers.Helpers
             );
         }
 
-        private async Task EditBookFields(Book book)
+        public async Task EditBookFields(Book book)
         {
             var authors = await _authorService.GetAllAuthor();
             var genres = await _dbService.GetAll<Genre>();
@@ -406,6 +279,39 @@ namespace BookStoreApp.Controllers.Helpers
                         break;
                 }
             }
+        }
+        private void SelectedInfo(
+            (string isbn, string title, decimal price, DateOnly releaseDate) basic,
+                    string? author,
+                    string? genre,
+                    string? format,
+                    string? publisher,
+                    string? language)
+        {
+            Console.Clear();
+            Console.WriteLine("==== ADD BOOK ===");
+
+            Console.WriteLine($"ISBN: {basic.isbn}");
+            Console.WriteLine($"TITLE: {basic.title}");
+            Console.WriteLine($"PRICE: {basic.price}");
+            Console.WriteLine($"RELEASE DATE: {basic.releaseDate.ToShortDateString()}");
+            if (!string.IsNullOrWhiteSpace(author))
+                Console.WriteLine($"AUTHOR: {author}");
+
+            if (!string.IsNullOrWhiteSpace(genre))
+                Console.WriteLine($"GENRE: {genre}");
+
+            if (!string.IsNullOrWhiteSpace(format))
+                Console.WriteLine($"FORMAT: {format}");
+
+            if (!string.IsNullOrWhiteSpace(publisher))
+                Console.WriteLine($"PUBLISHER: {publisher}");
+
+            if (!string.IsNullOrWhiteSpace(language))
+                Console.WriteLine($"LANGUAGE: {language}");
+
+            Console.WriteLine();
+
         }
 
     }

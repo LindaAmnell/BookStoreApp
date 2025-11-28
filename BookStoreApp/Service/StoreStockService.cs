@@ -78,5 +78,27 @@ namespace BookStoreApp.Service
             await _dbService.Delete(existingBook);
             return true;
         }
+
+        public async Task<bool> RemoveBookQuantity(int storeId, string isbn, int quantity)
+        {
+            var existing = await _context.StoreStocks
+                .FirstOrDefaultAsync(s => s.StoreId == storeId && s.Isbn == isbn);
+
+            if (existing == null)
+                return false;
+
+            if (existing.Quantity < quantity)
+                return false;
+
+            existing.Quantity -= quantity;
+
+            if (existing.Quantity == 0)
+                await _dbService.Delete(existing);
+            else
+                await _dbService.Update(existing);
+
+            return true;
+        }
+
     }
 }

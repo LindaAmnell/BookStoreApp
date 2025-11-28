@@ -19,7 +19,7 @@ namespace BookStoreApp
             var storeStockService = new StoreStockService(context, dbService);
 
             var bookMenu = new BookMenu(bookService, authorService, dbService);
-            var authorMenu = new AuthorMenu();
+            var authorMenu = new AuthorMenu(authorService, bookService, dbService);
             var storeMenu = new StoreMenu(storeStockService, dbService, bookService);
 
 

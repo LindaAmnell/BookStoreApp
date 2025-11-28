@@ -28,5 +28,12 @@
                 Console.Write("Invalid choice. Try again: ");
             }
         }
+
+        public static bool Confirm(string message = "Are you sure? (y/n): ")
+        {
+            Console.Write(message);
+            return Console.ReadLine()!.Trim().ToLower() == "y";
+        }
+
     }
 }
