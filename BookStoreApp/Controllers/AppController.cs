@@ -42,7 +42,7 @@ namespace BookStoreApp.Controllers
                         break;
 
                     case "2":
-                        //await _authorController.AuthorsMenu();
+                        await _authorController.AuthorsMenu();
                         break;
 
                     case "3":

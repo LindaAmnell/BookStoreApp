@@ -17,8 +17,9 @@
                 var input = Console.ReadLine();
 
                 if (input == "0")
+                {
                     return null;
-
+                }
                 if (int.TryParse(input, out choice) &&
                     choice >= 1 && choice <= items.Count)
                 {

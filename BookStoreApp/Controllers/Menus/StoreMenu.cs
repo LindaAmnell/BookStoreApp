@@ -64,8 +64,10 @@ namespace BookStoreApp.Controllers.Menus
             Console.WriteLine("=== STORE STOCK ===\n");
 
             var store = await _storeHelper.SelectStore();
-            if (store == null) return;
-
+            if (store == null)
+            {
+                return;
+            }
             Console.Clear();
             Console.WriteLine($"Store: {store.StoreName} ({store.City})\n");
 
@@ -93,8 +95,10 @@ namespace BookStoreApp.Controllers.Menus
             Console.WriteLine("=== ADD BOOK TO STORE ===\n");
 
             var store = await _storeHelper.SelectStore();
-            if (store == null) return;
-
+            if (store == null)
+            {
+                return;
+            }
             Console.Clear();
 
             Console.WriteLine($"=== BOOKS IN {store.StoreName} ({store.City}) ===\n");
@@ -119,8 +123,10 @@ namespace BookStoreApp.Controllers.Menus
             Console.WriteLine("=== REMOVE BOOK FROM STORE ===\n");
 
             var result = await _storeHelper.SelectStoreAndBook();
-            if (result == null) return;
-
+            if (result == null)
+            {
+                return;
+            }
             var (store, selected) = result.Value;
 
             if (InputHelper.Confirm($"Delete ALL of {selected.BookTitle}? (y/n):"))

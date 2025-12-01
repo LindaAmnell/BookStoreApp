@@ -18,8 +18,9 @@ namespace BookStoreApp.Service
 
         public async Task<List<Author>> GetAllAuthor()
         {
-            return await _dbService.GetAll<Author>();
+            return await _context.Authors.ToListAsync();
         }
+
         public async Task<bool> CreateAuthor(Author author)
         {
             try

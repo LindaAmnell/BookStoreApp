@@ -7,14 +7,18 @@ namespace BookStoreApp.Controllers.Helpers
     {
         private readonly AuthorService _authorService;
         private readonly DbService _dbService;
+        private readonly BookService _bookService;
 
-        public BookHelper(AuthorService authorService, DbService dbService)
+
+        public BookHelper(AuthorService authorService, DbService dbService, BookService bookService)
         {
             _dbService = dbService;
             _authorService = authorService;
+            _bookService = bookService;
         }
 
-        private (string isbn, string title, decimal price, DateOnly releaseDate)? CollectBasicBookData()
+        private async Task<(string isbn, string title, decimal price, DateOnly releaseDate)?> CollectBasicBookData()
+
         {
             // ISBN
             Console.Write("Enter ISBN-13 (or 0 to cancel): ");
@@ -23,12 +27,28 @@ namespace BookStoreApp.Controllers.Helpers
             while (true)
             {
                 if (isbn == "0")
+                {
                     return null;
-
+                }
                 if (!string.IsNullOrWhiteSpace(isbn))
-                    break;
+                {
+                    bool onlyDigits = isbn.All(char.IsDigit);
 
-                Console.Write("ISBN cannot be empty. Enter ISBN-13: ");
+                    if (onlyDigits && isbn.Length == 13)
+                    {
+                        var existingBook = await _bookService.GetBookByISBN(isbn);
+                        if (existingBook != null)
+                        {
+                            Console.WriteLine("\nA book with this ISBN already exists!");
+                            Console.Write("Enter a NEW ISBN-13 (or 0 to cancel): ");
+                            isbn = Console.ReadLine();
+                            continue;
+                        }
+                        break;
+                    }
+                }
+
+                Console.Write("Invalid ISBN. Must be exactly 13 digits. Enter ISBN-13: ");
                 isbn = Console.ReadLine();
             }
 
@@ -39,7 +59,9 @@ namespace BookStoreApp.Controllers.Helpers
             while (true)
             {
                 if (title == "0")
+                {
                     return null;
+                }
 
                 if (!string.IsNullOrWhiteSpace(title))
                     break;
@@ -53,7 +75,9 @@ namespace BookStoreApp.Controllers.Helpers
             string? priceInput = Console.ReadLine();
 
             if (priceInput == "0")
+            {
                 return null;
+            }
 
             decimal price;
             while (!decimal.TryParse(priceInput, out price))
@@ -62,14 +86,19 @@ namespace BookStoreApp.Controllers.Helpers
                 priceInput = Console.ReadLine();
 
                 if (priceInput == "0")
+                {
                     return null;
+                }
             }
+
             // Release date
             Console.Write("Enter release date YYYY-MM-DD (or 0 to cancel): ");
             string? dateInput = Console.ReadLine();
 
             if (dateInput == "0")
+            {
                 return null;
+            }
 
             DateOnly releaseDate;
             while (!DateOnly.TryParse(dateInput, out releaseDate))
@@ -78,7 +107,9 @@ namespace BookStoreApp.Controllers.Helpers
                 dateInput = Console.ReadLine();
 
                 if (dateInput == "0")
+                {
                     return null;
+                }
             }
 
             return (isbn, title, price, releaseDate);
@@ -86,7 +117,7 @@ namespace BookStoreApp.Controllers.Helpers
 
 
         private async Task<(int authorId, int genreId, int formatId, int publisherId, int languageId)?>
-           CollectBookSelections((string isbn, string title, decimal price, DateOnly releaseDate) basic)
+    CollectBookSelections((string isbn, string title, decimal price, DateOnly releaseDate) basic)
         {
             string? authorName = null;
             string? genreName = null;
@@ -99,63 +130,121 @@ namespace BookStoreApp.Controllers.Helpers
             // AUTHOR
             Console.WriteLine("\nSelect an author:");
             var authors = await _authorService.GetAllAuthor();
-            int? authorId = InputHelper.SelectFromList(authors, a => $"{a.FirstName} {a.LastName}", a => a.AuthorId);
-            if (authorId == null) return null;
+            int? authorId = InputHelper.SelectFromList(
+                authors,
+                a => $"{a.FirstName} {a.LastName}",
+                a => a.AuthorId
+            );
+
+            if (authorId == null)
+            {
+                return null;
+            }
 
             authorName = authors.First(a => a.AuthorId == authorId).FirstName
-                 + " " + authors.First(a => a.AuthorId == authorId).LastName;
+                         + " " + authors.First(a => a.AuthorId == authorId).LastName;
+
             SelectedInfo(basic, authorName, genreName, formatName, publisherName, languageName);
+
 
             // GENRE
             Console.WriteLine("\nSelect a genre:");
             var genres = await _dbService.GetAll<Genre>();
-            int? genreId = InputHelper.SelectFromList(genres, g => g.GenreName, g => g.GenreId);
-            if (genreId == null) return null;
+            int? genreId = InputHelper.SelectFromList(
+                genres,
+                g => g.GenreName,
+                g => g.GenreId
+            );
+
+            if (genreId == null)
+            {
+                return null;
+            }
 
             genreName = genres.First(g => g.GenreId == genreId).GenreName;
             SelectedInfo(basic, authorName, genreName, formatName, publisherName, languageName);
 
+
             // FORMAT
             Console.WriteLine("\nSelect a format:");
             var formats = await _dbService.GetAll<Format>();
-            int? formatId = InputHelper.SelectFromList(formats, f => f.FormatType, f => f.FormatId);
-            if (formatId == null) return null;
+            int? formatId = InputHelper.SelectFromList(
+                formats,
+                f => f.FormatType,
+                f => f.FormatId
+            );
+
+            if (formatId == null)
+            {
+                return null;
+            }
 
             formatName = formats.First(f => f.FormatId == formatId).FormatType;
             SelectedInfo(basic, authorName, genreName, formatName, publisherName, languageName);
 
+
             // PUBLISHER
             Console.WriteLine("\nSelect a publisher:");
             var publishers = await _dbService.GetAll<Publisher>();
-            int? publisherId = InputHelper.SelectFromList(publishers, p => p.Name, p => p.PublisherId);
-            if (publisherId == null) return null;
+            int? publisherId = InputHelper.SelectFromList(
+                publishers,
+                p => p.Name,
+                p => p.PublisherId
+            );
+
+            if (publisherId == null)
+            {
+                return null;
+            }
 
             publisherName = publishers.First(p => p.PublisherId == publisherId).Name;
             SelectedInfo(basic, authorName, genreName, formatName, publisherName, languageName);
 
+
             // LANGUAGE
             Console.WriteLine("\nSelect a language:");
             var languages = await _dbService.GetAll<Language>();
-            int? languageId = InputHelper.SelectFromList(languages, l => l.LanguageName, l => l.LanguageId);
-            if (languageId == null) return null;
+            int? languageId = InputHelper.SelectFromList(
+                languages,
+                l => l.LanguageName,
+                l => l.LanguageId
+            );
+
+            if (languageId == null)
+            {
+                return null;
+            }
 
             languageName = languages.First(l => l.LanguageId == languageId).LanguageName;
+
             SelectedInfo(basic, authorName, genreName, formatName, publisherName, languageName);
 
-            return (authorId.Value, genreId.Value, formatId.Value, publisherId.Value, languageId.Value);
+            return (
+                authorId.Value,
+                genreId.Value,
+                formatId.Value,
+                publisherId.Value,
+                languageId.Value
+            );
         }
+
 
         public async Task<(string isbn, string title, decimal price, DateOnly releaseDate,
                int authorId, int genreId, int formatId, int publisherId, int languageId)?>
              CollectBookInput()
         {
-            var basic = CollectBasicBookData();
+            var basic = await CollectBasicBookData();
+
             if (basic == null)
+            {
                 return null;
+            }
 
             var selections = await CollectBookSelections(basic.Value);
             if (selections == null)
+            {
                 return null;
+            }
 
             return (
                 basic.Value.isbn,
@@ -170,7 +259,7 @@ namespace BookStoreApp.Controllers.Helpers
             );
         }
 
-        public async Task EditBookFields(Book book)
+        public async Task<bool> EditBookFields(Book book)
         {
             var authors = await _authorService.GetAllAuthor();
             var genres = await _dbService.GetAll<Genre>();
@@ -212,19 +301,25 @@ namespace BookStoreApp.Controllers.Helpers
                         Console.Write("New title: ");
                         var newTitle = Console.ReadLine();
                         if (!string.IsNullOrWhiteSpace(newTitle))
+                        {
                             book.Title = newTitle;
+                        }
                         break;
 
                     case "2":
                         Console.Write("New price: ");
                         if (decimal.TryParse(Console.ReadLine(), out decimal newPrice))
+                        {
                             book.Price = newPrice;
+                        }
                         break;
 
                     case "3":
                         Console.Write("New release date (YYYY-MM-DD): ");
                         if (DateOnly.TryParse(Console.ReadLine(), out var newDate))
+                        {
                             book.ReleaseDate = newDate;
+                        }
                         break;
 
                     case "4":
@@ -234,7 +329,9 @@ namespace BookStoreApp.Controllers.Helpers
                             a => a.AuthorId);
 
                         if (authorId != null)
+                        {
                             book.AuthorId = authorId.Value;
+                        }
                         break;
 
                     case "5":
@@ -242,7 +339,9 @@ namespace BookStoreApp.Controllers.Helpers
                         int? genreId = InputHelper.SelectFromList(genres, g => g.GenreName, g => g.GenreId);
 
                         if (genreId != null)
+                        {
                             book.GenreId = genreId.Value;
+                        }
                         break;
 
                     case "6":
@@ -250,7 +349,9 @@ namespace BookStoreApp.Controllers.Helpers
                         int? formatId = InputHelper.SelectFromList(formats, f => f.FormatType, f => f.FormatId);
 
                         if (formatId != null)
+                        {
                             book.FormatId = formatId.Value;
+                        }
                         break;
 
                     case "7":
@@ -258,7 +359,9 @@ namespace BookStoreApp.Controllers.Helpers
                         int? publisherId = InputHelper.SelectFromList(publishers, p => p.Name, p => p.PublisherId);
 
                         if (publisherId != null)
+                        {
                             book.PublisherId = publisherId.Value;
+                        }
                         break;
 
                     case "8":
@@ -266,7 +369,9 @@ namespace BookStoreApp.Controllers.Helpers
                         int? langId = InputHelper.SelectFromList(languages, l => l.LanguageName, l => l.LanguageId);
 
                         if (langId != null)
+                        {
                             book.LanguagesId = langId.Value;
+                        }
                         break;
 
                     case "0":
@@ -279,6 +384,7 @@ namespace BookStoreApp.Controllers.Helpers
                         break;
                 }
             }
+            return true;
         }
         private void SelectedInfo(
             (string isbn, string title, decimal price, DateOnly releaseDate) basic,
@@ -296,20 +402,25 @@ namespace BookStoreApp.Controllers.Helpers
             Console.WriteLine($"PRICE: {basic.price}");
             Console.WriteLine($"RELEASE DATE: {basic.releaseDate.ToShortDateString()}");
             if (!string.IsNullOrWhiteSpace(author))
+            {
                 Console.WriteLine($"AUTHOR: {author}");
-
+            }
             if (!string.IsNullOrWhiteSpace(genre))
+            {
                 Console.WriteLine($"GENRE: {genre}");
-
+            }
             if (!string.IsNullOrWhiteSpace(format))
+            {
                 Console.WriteLine($"FORMAT: {format}");
-
+            }
             if (!string.IsNullOrWhiteSpace(publisher))
+            {
                 Console.WriteLine($"PUBLISHER: {publisher}");
-
+            }
             if (!string.IsNullOrWhiteSpace(language))
+            {
                 Console.WriteLine($"LANGUAGE: {language}");
-
+            }
             Console.WriteLine();
 
         }

@@ -17,7 +17,8 @@ namespace BookStoreApp.Service
 
         public async Task<List<Book>> GetAllBooks()
         {
-            return await _dbService.GetAll<Book>();
+            return await _context.Books.ToListAsync();
+
         }
 
 
@@ -32,6 +33,10 @@ namespace BookStoreApp.Service
             {
                 return false;
             }
+        }
+        public async Task<Book?> GetBookByISBN(string isbn)
+        {
+            return await _context.Books.FindAsync(isbn);
         }
 
         public async Task<bool> UpdateBook(Book book)

@@ -9,13 +9,11 @@ namespace BookStoreApp.Controllers.Menus
         private readonly BookHelper _bookHelper;
         private readonly BookService _bookService;
 
-
         public BookMenu(BookService bookService, AuthorService authorService, DbService dbService)
         {
             _bookService = bookService;
-            _bookHelper = new BookHelper(authorService, dbService);
+            _bookHelper = new BookHelper(authorService, dbService, bookService);
         }
-
 
         public async Task BooksMenu()
         {
@@ -151,7 +149,14 @@ namespace BookStoreApp.Controllers.Menus
 
             var selectedBook = books[index.Value];
 
-            await _bookHelper.EditBookFields(selectedBook);
+            bool changed = await _bookHelper.EditBookFields(selectedBook);
+
+            if (!changed)
+            {
+                Console.WriteLine("\nNo changes made. Update cancelled.");
+                Console.ReadLine();
+                return;
+            }
 
             bool success = await _bookService.UpdateBook(selectedBook);
 

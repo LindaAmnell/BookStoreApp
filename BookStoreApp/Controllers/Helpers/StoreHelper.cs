@@ -34,8 +34,9 @@ namespace BookStoreApp.Controllers.Helpers
             );
 
             if (storeId == null)
+            {
                 return null;
-
+            }
             return stores.First(s => s.StoreId == storeId.Value);
         }
 
@@ -94,7 +95,10 @@ namespace BookStoreApp.Controllers.Helpers
         public async Task<(Store store, StoreStockDto selectedBook)?> SelectStoreAndBook()
         {
             var store = await SelectStore();
-            if (store == null) return null;
+            if (store == null)
+            {
+                return null;
+            }
 
             Console.Clear();
             var stock = await _ssService.StoreStock(store.StoreId);
